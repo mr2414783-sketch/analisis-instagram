@@ -390,9 +390,46 @@ function rowsOf(p){
 }
 function itemRows(k){const ix=catIdx();return ix.rc[k]||(ix.rc[k]=(ix.m[k]||[]).flatMap(p=>rowsOf(p).map(t=>({f:p,t}))))}
 function keyLabel(k){const [gk,n]=k.split('|'),g=GD.find(z=>z.k===gk);return[g?g.t:'Folder lain',n==='Lainnya'||!g?(g?g.t+' (lainnya)':n):n]}
+let DLU=null;
 function dlFile(name,mime,data){
-  const u=URL.createObjectURL(new Blob([data],{type:mime})),a=document.createElement('a');
-  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);
+  const isT=!(data instanceof Blob),blob=isT?new Blob([data],{type:mime}):data;
+  if(DLU){try{URL.revokeObjectURL(DLU)}catch(e){}}
+  const u=DLU=URL.createObjectURL(blob);
+  try{const a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}catch(e){}
+  dlSheet(name,mime,blob,u,isT?data:null);
+}
+function dlSheet(name,mime,blob,u,txt){
+  let el=document.getElementById('dls');
+  if(!el){el=document.createElement('div');el.id='dls';document.body.appendChild(el)}
+  el.style.cssText='position:fixed;left:0;right:0;bottom:70px;z-index:60;max-width:560px;margin:0 auto;padding:0 12px';
+  el.innerHTML=`<div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.28);padding:14px">
+   <b style="font-size:14px;word-break:break-all">${esc(name)}</b>
+   <p class="m" id="dlm" style="margin:4px 0 10px">Jika file belum terunduh otomatis, pilih salah satu cara ini:</p>
+   <button class="opt pri" id="dl1" style="margin-bottom:8px"><span class="letter">1</span>Simpan / Bagikan file</button>
+   <button class="opt" id="dl2" style="margin-bottom:8px"><span class="letter">2</span>Buka di tab baru</button>
+   ${txt!==null?'<button class="opt" id="dl3" style="margin-bottom:8px"><span class="letter">3</span>Salin teks</button>':''}
+   <button class="opt" id="dlx" style="margin:0;justify-content:center">Tutup</button></div>`;
+  const msg=t=>{const e=document.getElementById('dlm');if(e)e.textContent=t};
+  document.getElementById('dlx').onclick=()=>{el.innerHTML=''};
+  document.getElementById('dl1').onclick=async()=>{
+    try{
+      const f=new File([blob],name,{type:mime});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});msg('Pilih "Simpan ke File" / aplikasi tujuan di menu yang muncul.');return}
+    }catch(e){if(e&&e.name==='AbortError')return}
+    msg('Browser ini tidak mendukung Bagikan. Coba cara 2 atau 3, atau buka halaman di Chrome/Safari.');
+  };
+  document.getElementById('dl2').onclick=()=>{
+    const w=window.open(u,'_blank');
+    msg(w?'Dibuka di tab baru. Tahan lama gambar/teks lalu pilih simpan, atau pakai menu browser.':'Tab baru diblokir. Coba cara 1 atau 3.');
+  };
+  const c=document.getElementById('dl3');
+  if(c)c.onclick=async()=>{
+    try{await navigator.clipboard.writeText(txt);msg('Teks tersalin. Tempel ke aplikasi catatan atau file lalu simpan.');return}catch(e){}
+    try{
+      const t=document.createElement('textarea');t.value=txt;t.style.cssText='width:100%;height:120px;margin-top:8px';
+      c.insertAdjacentElement('afterend',t);t.select();document.execCommand('copy');msg('Teks dipilih. Jika belum tersalin, tahan lama lalu pilih Salin.');
+    }catch(e){msg('Gagal menyalin. Buka halaman di Chrome/Safari.')}
+  };
 }
 const cq=v=>'"'+String(v).replace(/"/g,'""')+'"';
 const csvOf=l=>'\ufeff'+['Kategori,Item,File,Isi'].concat(l.map(r=>r.map(cq).join(','))).join('\r\n');
@@ -455,7 +492,7 @@ function appBind(){
     m(ios?'iPhone/iPad: buka di Safari, ketuk Bagikan, lalu "Tambah ke Layar Utama".':'Android/Chrome: ketuk menu ⋮ lalu "Instal aplikasi" atau "Tambahkan ke layar utama". Jika tidak muncul, halaman perlu dibuka lewat https (bukan file lokal); atau pakai Unduh aplikasi (HTML).');
   };
   $('#ap2').onclick=()=>{dlFile('cek-follow-instagram.html','text/html;charset=utf-8',SRC);m('File aplikasi diunduh.')};
-  $('#ap3').onclick=()=>{const a=document.createElement('a');a.href=ICON512;a.download='logo-cek-follow.png';document.body.appendChild(a);a.click();a.remove()};
+  $('#ap3').onclick=()=>{try{const b=atob(ICON512.split(',')[1]);dlFile('logo-cek-follow.png','image/png',new Blob([Uint8Array.from(b,c=>c.charCodeAt(0))],{type:'image/png'}))}catch(e){m('Gagal menyiapkan PNG.')}};
   $('#ap4').onclick=()=>dlFile('logo-cek-follow.svg','image/svg+xml',LOGO_SVG);
 }
 
