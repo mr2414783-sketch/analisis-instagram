@@ -62,6 +62,15 @@ mark{background:#ffe066;color:#000}
 .ig-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-around;background:var(--panel);border-top:1px solid var(--line);padding:8px 4px calc(8px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
 .ig-tab{background:none;border:none;cursor:pointer;padding:6px 10px;display:flex;color:var(--ink);opacity:.55;transition:opacity .15s,transform .1s}
 .ig-tab svg{width:24px;height:24px}.ig-tab:active{transform:scale(.9)}.ig-tab.active{opacity:1;color:var(--red)}
+.gd-sec{padding:14px 0 4px;border-top:1px solid var(--line);margin-top:12px}.gd-sec:first-of-type{border-top:0;margin-top:0}
+.gd-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.gd-h b{font-size:15px;font-weight:800}
+.gd-d{font-size:12px;color:var(--mut);font-weight:600;margin:2px 0 6px}
+.gd-i{display:flex;align-items:center;gap:12px;padding:9px 2px;font-size:14.5px;font-weight:600;cursor:pointer}
+.gd-i input{appearance:none;-webkit-appearance:none;width:20px;height:20px;border:2px solid var(--mut);border-radius:50%;margin:0;flex-shrink:0;display:grid;place-content:center;cursor:pointer}
+.gd-i input:checked{background:var(--red);border-color:var(--red)}.gd-i input:checked::after{content:"";width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.gd-b{font-size:10px;font-weight:800;padding:3px 8px;border-radius:100px;white-space:nowrap}.gd-b.y{background:rgba(63,145,66,.15);color:var(--green)}.gd-b.n{background:rgba(237,73,86,.12);color:var(--gold)}
+.gd-bar{display:flex;gap:10px;margin-top:16px}.gd-bar .opt{margin:0;justify-content:center}
+.gd-lnk{font-size:12px;color:var(--mut);font-weight:700;margin:0 0 12px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -156,6 +165,39 @@ document.querySelectorAll('.ig-tab').forEach(b=>b.onclick=()=>{
 });
 function render(){({h:rHome,f:rFollow,a:rAct,b:rBrowse})[tab]()}
 
+
+/* PANDUAN EKSPOR (checklist kategori Your Instagram activity) */
+const GK='igr_guide';
+const GD=[
+ {k:'your_instagram_activity',t:'Your Instagram activity',d:'Information about your activity, such as content you’ve created, your messages and more',i:['Avatars Store','Checkout','Comments','Events','Fundraisers','Gifts','Likes','Meta Spark','Monetization','Saved','Story interactions','Subscriptions','Other activity','Instants','Threads','Media','Edits','Reports','Shared access','AI','Messages']},
+ {k:'personal_information',t:'Personal information',d:'Information about your profile',i:['Autofill information','Personal information','Device information','Information about you','Facebook Accounts Center']},
+ {k:'connections',t:'Connections',d:'Who and how you’ve connected with people',i:['Contacts','Followers and following']},
+ {k:'logged_information',t:'Logged information',d:'Information that Meta logs about your activity, including things like your location and search history',i:['Link history','Past Instagram insights','Policy updates and permissions','Recent searches','Basic mode']},
+ {k:'security_and_login_information',t:'Security and login information',d:'Technical information and login activity',i:['Login and profile creation']},
+ {k:'apps_and_websites_off_of_instagram',t:'Apps and websites off of Instagram',d:'Apps you own and activity we receive from apps and websites off of Instagram',i:['Apps and websites']},
+ {k:'preferences',t:'Preferences',d:'Actions you’ve taken to customize your experience',i:['Your topics','Settings']},
+ {k:'ads_information',t:'Ads information',d:'Your interactions with ads and advertisers',i:['Instagram ads and businesses','Ads and topics']}
+];
+let GS=null;
+function gAll(v){const o={};GD.forEach(g=>g.i.forEach(n=>o[g.k+'|'+n]=v));return o}
+function gLoad(){if(GS)return;try{const r=JSON.parse(localStorage.getItem(GK));if(r&&typeof r==='object'){GS=Object.assign(gAll(true),r);return}}catch(e){}GS=gAll(true)}
+function gCount(){const v=Object.values(GS);return v.filter(Boolean).length+'/'+v.length}
+function gHtml(){
+  gLoad();
+  const top=new Set(ALL.map(p=>p.split('/')[0]));
+  return `<div class="card" id="gd"><span class="tag">Panduan</span><div class="q">Saat minta ekspor di Instagram</div><p class="big" style="font-size:20px;margin-bottom:6px">Centang kategori data</p>
+  <p class="gd-lnk">Halaman: accountscenter.instagram.com · Your Instagram activity<br>Terpilih: <span id="gc">${gCount()}</span></p>`+
+  GD.map(g=>`<div class="gd-sec"><div class="gd-h"><b>${esc(g.t)}</b>${D?`<span class="gd-b ${top.has(g.k)?'y':'n'}">${top.has(g.k)?'Ada di ZIP':'Tidak ada di ZIP'}</span>`:''}</div><div class="gd-d">${esc(g.d)}</div>`+
+   g.i.map(n=>`<label class="gd-i"><input type="checkbox" data-g="${esc(g.k+'|'+n)}"${GS[g.k+'|'+n]?' checked':''}>${esc(n)}</label>`).join('')+'</div>').join('')+
+  `<div class="gd-bar"><button class="opt" id="gclr"><span class="letter">✕</span>Clear all</button><button class="opt pri" id="gsave"><span class="letter">✓</span>Save</button></div>
+  <p class="m" id="gm">Checklist ini hanya panduan; untuk memilih di Instagram tetap dilakukan di halaman ekspornya.</p></div>`;
+}
+function gBind(){
+  document.querySelectorAll('#gd input[type=checkbox]').forEach(c=>c.onchange=()=>{GS[c.dataset.g]=c.checked;$('#gc').textContent=gCount()});
+  $('#gclr').onclick=()=>{GS=gAll(false);document.querySelectorAll('#gd input[type=checkbox]').forEach(c=>c.checked=false);$('#gc').textContent=gCount()};
+  $('#gsave').onclick=()=>{try{localStorage.setItem(GK,JSON.stringify(GS));$('#gm').textContent='Tersimpan ('+gCount()+' dipilih).'}catch(e){$('#gm').textContent='Gagal menyimpan di browser ini.'}};
+}
+
 /* BERANDA */
 function rHome(){
   $('#body').innerHTML=`<div class="card"><span class="tag">Mulai</span><div class="q">Langkah 1</div><p class="big">Upload ZIP ekspor Instagram</p>
@@ -165,6 +207,7 @@ function rHome(){
   <div class="stats"><div class="stat"><b>${D.following.length}</b><span>Mengikuti</span></div><div class="stat"><b>${D.followers.length}</b><span>Pengikut</span></div>
   <div class="stat bad"><b>${D.notBack.length}</b><span>Tidak follow balik</span></div><div class="stat ok"><b>${D.mutual.length}</b><span>Saling follow</span></div></div></div>`:'');
   $('#zf').onchange=e=>{const f=e.target.files[0];if(f)load(f)};
+  $('#body').insertAdjacentHTML('beforeend',gHtml());gBind();
 }
 
 /* FOLLOW */
